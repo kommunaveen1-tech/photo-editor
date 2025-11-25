@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Passport Photo Maker - 8 Photos</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 { 
+            text-align: center; 
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 600;
+            font-size: 28px;
+        }
+        
+        .options { 
+            margin-bottom: 25px; 
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #4a6ee0;
+        }
+        
+        .preview { 
+            margin-top: 25px; 
+            text-align: center; 
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        canvas { 
+            border: 1px solid #ddd; 
+            background: white;
+            max-width: 100%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn { 
+            padding: 12px 25px; 
+            margin: 8px 5px; 
+            cursor: pointer; 
+            background: #4a6ee0;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .btn:hover {
+            background: #3a5bc7;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            background: #a0a0a0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        label {
+            display: inline-block;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 18px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            font-size: 15px;
+            border-left: 4px solid #4a6ee0;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        select, input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 300px;
+            font-size: 15px;
+        }
+        
+        .radio-group {
+            margin: 15px 0;
+        }
+        
+        .radio-group label {
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        
+        .photo-size-info {
+            display: inline-block;
+            margin-left: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body, .container {
+                margin: 0;
+                padding: 0;
+                background: white;
+                box-shadow: none;
+            }
+            
+            .options, .btn, .instructions, h1, .print-instructions {
+                display: none !important;
+            }
+            
+            .preview {
+                margin: 0;
+                width: 100%;
+                padding: 0;
+                background: white;
+            }
+            
+            canvas {
+                border: none;
+                background: white;
+                width: 100%;
+                height: auto;
+                box-shadow: none;
+            }
+        }
+        
+        .print-instructions {
+            display: none;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Passport Photo Maker - 8 Photos (2x4 Layout)</h1>
+    
+    <div class="options">
+        <div class="input-group">
+            <label>
+                Upload Image:
+                <input type="file" id="imgInput" accept="image/*" />
+            </label>
+        </div>
+        
+        <div class="input-group">
+            <label for="sizeSelect">Passport Photo Size:</label>
+            <select id="sizeSelect">
+                <option value="35,45">35x45 mm (Standard EU)</option>
+                <option value="50,50">50x50 mm (Square)</option>
+                <option value="51,51">2x2 inch (US Passport)</option>
+                <option value="35,35">35x35 mm (India)</option>
+                <option value="40,50">40x50 mm (China)</option>
+            </select>
+            <span class="photo-size-info" id="sizeInfo">35x45 mm (Standard EU size)</span>
+        </div>
+        
+        <div class="input-group">
+            <button class="btn" onclick="generateSheet()">Generate Sheet</button>
+            <button class="btn" id="downloadBtn" onclick="downloadSheet()" disabled>Download</button>
+            <button class="btn" id="printBtn" onclick="printSheet()" disabled>Print</button>
+        </div>
+        
+        <div id="statusMessage" class="status"></div>
+    </div>
+    
+    <div class="instructions">
+        <p><strong>Instructions:</strong> Upload a clear front-facing photo with a plain light-colored background. The tool will create a sheet with 8 passport photos (2 rows of 4) that you can print on 4x6 inch photo paper. For best results, select "Actual Size" in your printer settings and use matte or glossy photo paper.</p>
+    </div>
+    
+    <div class="preview">
+        <div class="print-instructions">
+            Cut along the lines to separate your 8 passport photos
+        </div>
+        <canvas id="sheetCanvas"></canvas>
+    </div>
+</div>
+
+<script>
+let passportImg = null;
+let canvas = document.getElementById('sheetCanvas');
+let ctx = canvas.getContext('2d');
+
+// Update size info when selection changes
+document.getElementById('sizeSelect').addEventListener('change', function() {
+    const size = this.value.split(',');
+    const width = size[0];
+    const height = size[1];
+    document.getElementById('sizeInfo').textContent = `${width}x${height} mm`;
+});
+
+document.getElementById('imgInput').onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Check if file is an image
+    if (!file.type.match('image.*')) {
+        showStatus('Please select an image file (JPEG, PNG, etc.)', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        passportImg = new Image();
+        passportImg.onload = function() {
+            document.getElementById('downloadBtn').disabled = false;
+            document.getElementById('printBtn').disabled = false;
+            showStatus('Image loaded successfully! Click "Generate Sheet" to create your passport photos.', 'success');
+        };
+        passportImg.onerror = function() {
+            showStatus('Error loading image. Please try another file.', 'error');
+        };
+        passportImg.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+};
+
+function showStatus(message, type) {
+    const statusEl = document.getElementById('statusMessage');
+    statusEl.textContent = message;
+    statusEl.className = 'status ' + type;
+    
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = 'status';
+        }, 5000);
+    }
+}
+
+function generateSheet() {
+    if (!passportImg) {
+        showStatus('Please upload a passport photo first!', 'error');
+        return;
+    }
+
+    // Get selected size
+    const size = document.getElementById('sizeSelect').value.split(',');
+    const widthMM = parseFloat(size[0]);
+    const heightMM = parseFloat(size[1]);
+
+    // Convert mm to pixels at 300 DPI (1 inch = 25.4 mm)
+    const pxW = Math.round((widthMM / 25.4) * 300);
+    const pxH = Math.round((heightMM / 25.4) * 300);
+
+    // Fixed layout: 2 rows, 4 columns (8 photos total)
+    const rows = 2;
+    const cols = 4;
+    const gutter = 20; // Space between photos
+    
+    // Calculate canvas dimensions for 4x6 inch photo paper at 300 DPI
+    // with 8 photos (2 rows of 4)
+    const totalWidth = (pxW * cols) + (gutter * (cols - 1)) + 60; // Add margins
+    const totalHeight = (pxH * rows) + (gutter * (rows - 1)) + 60; // Add margins
+    
+    // Set canvas dimensions
+    canvas.width = totalWidth;
+    canvas.height = totalHeight;
+
+    // Clear canvas with white background
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Calculate offsets to center the photos on the canvas
+    const offsetX = (canvas.width - ((pxW * cols) + (gutter * (cols - 1)))) / 2;
+    const offsetY = (canvas.height - ((pxH * rows) + (gutter * (rows - 1)))) / 2;
+
+    // Draw 8 photos (2 rows of 4)
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const x = offsetX + c * (pxW + gutter);
+            const y = offsetY + r * (pxH + gutter);
+            
+            // Draw white background for photo
+            ctx.fillStyle = "white";
+            ctx.fillRect(x, y, pxW, pxH);
+            
+            // Draw aspect ratio crop
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x, y, pxW, pxH);
+            ctx.clip();
+
+            // Calculate dimensions to fill the area while maintaining aspect ratio
+            const imgAspect = passportImg.width / passportImg.height;
+            const targetAspect = pxW / pxH;
+            
+            let drawWidth, drawHeight, drawX, drawY;
+            
+            if (imgAspect > targetAspect) {
+                // Image is wider than target - fit to height
+                drawHeight = pxH;
+                drawWidth = pxH * imgAspect;
+                drawX = x + (pxW - drawWidth) / 2;
+                drawY = y;
+            } else {
+                // Image is taller than target - fit to width
+                drawWidth = pxW;
+                drawHeight = pxW / imgAspect;
+                drawX = x;
+                drawY = y + (pxH - drawHeight) / 2;
+            }
+            
+            ctx.drawImage(passportImg, drawX, drawY, drawWidth, drawHeight);
+            ctx.restore();
+
+            // Draw border
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, pxW, pxH);
+            
+            // Add dashed cutting guides
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = "#999";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - 5, y - 5, pxW + 10, pxH + 10);
+            ctx.setLineDash([]);
+        }
+    }
+    
+    // Update print instructions
+    document.querySelector('.print-instructions').textContent = 
+        `Cut along the lines to separate your 8 passport photos (${widthMM}x${heightMM} mm each)`;
+    
+    showStatus(`Passport photo sheet generated with 8 photos! Ready for download or printing.`, 'success');
+}
+
+// Download the sheet as an image
+function downloadSheet() {
+    let link = document.createElement('a');
+    link.download = 'passport-photos-8-sheet.png';
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
+}
+
+// Print the sheet with proper formatting
+function printSheet() {
+    window.print();
+}
+</script>
+</body>
+</html>
